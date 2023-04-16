@@ -4,7 +4,8 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         //.add_startup_system(setup_2d_mesh)
-        .add_startup_system(setup_2d_sprite)
+        //.add_startup_system(setup_2d_sprite)
+        .add_plugin(MoveSpritePlugin)
         .run();
 }
 
@@ -28,4 +29,46 @@ fn setup_2d_sprite(mut commands: Commands, asset_server: Res<AssetServer>) {
         texture: asset_server.load("branding/icon.png"),
         ..default()
     });
+}
+
+#[derive(Component)]
+enum Direction {
+    Up,
+    Down,
+}
+
+fn setup_move_sprite(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn(Camera2dBundle::default());
+    commands.spawn((
+        SpriteBundle {
+            texture: asset_server.load("branding/icon.png"),
+            transform: Transform::from_xyz(100., 0., 0.),
+            ..default()
+        },
+        Direction::Up,
+    ));
+}
+
+fn sprite_movement(time: Res<Time>, mut sprite_position: Query<(&mut Direction, &mut Transform)>) {
+    for (mut logo, mut transform) in &mut sprite_position {
+        match *logo {
+            Direction::Up => transform.translation.y += 150. * time.delta_seconds(),
+            Direction::Down => transform.translation.y -= 150. * time.delta_seconds(),
+        }
+
+        if transform.translation.y > 200. {
+            *logo = Direction::Down;
+        } else if transform.translation.y < -200. {
+            *logo = Direction::Up;
+        }
+    }
+}
+
+struct MoveSpritePlugin;
+
+impl Plugin for MoveSpritePlugin {
+    fn build(&self, app: &mut App) {
+        app.add_startup_system(setup_move_sprite)
+            .add_system(sprite_movement);
+    }
 }
